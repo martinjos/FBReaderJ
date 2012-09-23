@@ -282,7 +282,10 @@ public class ZLAndroidWidget extends View implements ZLViewWidget, View.OnLongCl
 		if (myPendingLongClickRunnable == null) {
 			myPendingLongClickRunnable = new LongClickRunnable();
 		}
-		postDelayed(myPendingLongClickRunnable, 2 * ViewConfiguration.getLongPressTimeout());
+
+		// I would rather stick with the normal long press timeout. -MS
+		//postDelayed(myPendingLongClickRunnable, 2 * ViewConfiguration.getLongPressTimeout());
+		postDelayed(myPendingLongClickRunnable, ViewConfiguration.getLongPressTimeout());
 	}
 
 	private class ShortClickRunnable implements Runnable {

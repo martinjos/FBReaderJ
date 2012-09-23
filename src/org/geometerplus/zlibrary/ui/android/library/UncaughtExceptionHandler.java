@@ -36,9 +36,8 @@ public class UncaughtExceptionHandler implements java.lang.Thread.UncaughtExcept
 	}
 
 	public void uncaughtException(Thread thread, Throwable exception) {
-		final StringWriter stackTrace = new StringWriter();
-		exception.printStackTrace(new PrintWriter(stackTrace));
-		System.err.println(stackTrace);
+		String stackTraceStr = getStackTraceString(exception);
+		System.err.println(stackTraceStr);
 
 		Intent intent = new Intent(
 			"android.fbreader.action.CRASH",
@@ -48,7 +47,7 @@ public class UncaughtExceptionHandler implements java.lang.Thread.UncaughtExcept
 			myContext.startActivity(intent);
 		} catch (ActivityNotFoundException e) {
 			intent = new Intent(myContext, BugReportActivity.class);
-			intent.putExtra(BugReportActivity.STACKTRACE, stackTrace.toString());
+			intent.putExtra(BugReportActivity.STACKTRACE, stackTraceStr);
 			myContext.startActivity(intent);
 		}
 
@@ -58,5 +57,11 @@ public class UncaughtExceptionHandler implements java.lang.Thread.UncaughtExcept
 
 		Process.killProcess(Process.myPid());
 		System.exit(10);
+	}
+
+	public static String getStackTraceString(Throwable t) {
+		final StringWriter stackTrace = new StringWriter();
+		t.printStackTrace(new PrintWriter(stackTrace));
+		return stackTrace.toString();
 	}
 }

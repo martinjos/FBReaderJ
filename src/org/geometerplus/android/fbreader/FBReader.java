@@ -25,6 +25,8 @@ import android.app.SearchManager;
 import android.content.*;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
+import android.widget.PopupWindow;
 import android.view.*;
 import android.widget.RelativeLayout;
 
@@ -51,6 +53,8 @@ import org.geometerplus.android.fbreader.tips.TipsActivity;
 
 import org.geometerplus.android.util.UIUtil;
 
+import org.martincode.fbdict.android.BuiltInDictUtil;
+
 public final class FBReader extends ZLAndroidActivity {
 	public static final String BOOK_PATH_KEY = "BookPath";
 
@@ -63,6 +67,8 @@ public final class FBReader extends ZLAndroidActivity {
 	public static final int RESULT_RELOAD_BOOK = RESULT_FIRST_USER + 2;
 
 	private int myFullScreenFlag;
+
+	protected PopupWindow currentPopup;
 
 	private static final String PLUGIN_ACTION_PREFIX = "___";
 	private final List<PluginApi.ActionInfo> myPluginActions =
@@ -91,6 +97,18 @@ public final class FBReader extends ZLAndroidActivity {
 		}
 	};
 
+	public void setCurrentPopup(PopupWindow popup) {
+		if (currentPopup != null) {
+			currentPopup.dismiss();
+		}
+		this.currentPopup = popup;
+	}
+
+	@Override
+	public void onUserInteraction() {
+		setCurrentPopup(null);
+	}
+
 	@Override
 	protected ZLFile fileFromIntent(Intent intent) {
 		String filePath = intent.getStringExtra(BOOK_PATH_KEY);
@@ -109,10 +127,11 @@ public final class FBReader extends ZLAndroidActivity {
 			public void run() {
 				runOnUiThread(new Runnable() {
 					public void run() {
-						new TipRunner().start();
+						//new TipRunner().start();
 						DictionaryUtil.init(FBReader.this);
 					}
 				});
+				BuiltInDictUtil.init();
 			}
 		};
 	}
@@ -120,7 +139,6 @@ public final class FBReader extends ZLAndroidActivity {
 	@Override
 	public void onCreate(Bundle icicle) {
 		super.onCreate(icicle);
-
 		final FBReaderApp fbReader = (FBReaderApp)FBReaderApp.Instance();
 		final ZLAndroidLibrary zlibrary = (ZLAndroidLibrary)ZLibrary.Instance();
 		myFullScreenFlag =

@@ -25,7 +25,9 @@ import android.app.*;
 import android.content.*;
 import android.net.Uri;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Gravity;
+import android.widget.PopupWindow;
 
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.options.ZLStringOption;
@@ -40,6 +42,8 @@ import org.geometerplus.zlibrary.ui.android.library.ZLAndroidLibrary;
 
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.android.util.PackageUtil;
+import org.martincode.fbdict.android.BuiltInDictUtil;
+import org.martincode.fbdict.android.DictActivity;
 
 public abstract class DictionaryUtil {
 	private static int FLAG_INSTALLED_ONLY = 1;
@@ -136,6 +140,8 @@ public abstract class DictionaryUtil {
 		if (ourInfos.isEmpty()) {
 			final Thread initThread = new Thread(new Runnable() {
 				public void run() {
+					ourInfos.put(new PackageInfo("", null, null,  "Built-In", "org.martincode.fbdict.android.SEARCH", "org.martincode.fbdict.android.WORD", "%s"),
+							FLAG_SHOW_AS_DICTIONARY | FLAG_SHOW_AS_TRANSLATOR | FLAG_INSTALLED_ONLY);
 					new InfoReader().readQuietly(ZLFile.createFileByPath("dictionaries/main.xml"));
 					new ParagonInfoReader(context).readQuietly(ZLFile.createFileByPath("dictionaries/paragon.xml"));
 				}
@@ -232,13 +238,15 @@ public abstract class DictionaryUtil {
 				dictionaryInfo.PackageName, cls
 			));
 		}
-		intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		if (!dictionaryInfo.Id.equals("")) {
+		    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		}
 		text = dictionaryInfo.IntentDataPattern.replace("%s", text);
 		if (dictionaryInfo.IntentKey != null) {
 			return intent.putExtra(dictionaryInfo.IntentKey, text);
 		} else {
 			return intent.setData(Uri.parse(text));
-		}			
+		}
 	}
 
 	public static void openTextInDictionary(Activity activity, String text, boolean singleWord, int selectionTop, int selectionBottom) {
@@ -255,6 +263,7 @@ public abstract class DictionaryUtil {
 
 		final PackageInfo info = getCurrentDictionaryInfo(singleWord);
 		final Intent intent = getDictionaryIntent(info, text);
+		//Log.i("martincode", "Going to try " + intent.getAction());
 		try {
 			if ("ColorDict".equals(info.Id)) {
 				final DisplayMetrics metrics = new DisplayMetrics();
@@ -271,8 +280,18 @@ public abstract class DictionaryUtil {
 				final ZLAndroidLibrary zlibrary = (ZLAndroidLibrary)ZLAndroidLibrary.Instance();
 				intent.putExtra(ColorDict3.FULLSCREEN, !zlibrary.ShowStatusBarOption.getValue());
 			}
-			activity.startActivity(intent);
+			if ("".equals(info.Id)) { // Built-In dictionary
+				//BuiltInDictUtil.init(); // (returns immediately if already initialised)
+				if (activity instanceof FBReader) {
+					PopupWindow popup = BuiltInDictUtil.show(activity, text, singleWord, selectionTop, selectionBottom);
+					FBReader fbReader = (FBReader) activity;
+					fbReader.setCurrentPopup(popup);
+				}
+			} else {
+				activity.startActivity(intent);
+			}
 		} catch (ActivityNotFoundException e) {
+			//Log.i("martincode", "Dictionary " + intent.getAction() + " cannot be started: " + e);
 			DictionaryUtil.installDictionaryIfNotInstalled(activity, singleWord);
 		}
 	}
@@ -287,6 +306,7 @@ public abstract class DictionaryUtil {
 		if (PackageUtil.canBeStarted(activity, getDictionaryIntent("test", singleWord), false)) {
 			return;
 		}
+		
 		final PackageInfo dictionaryInfo = getCurrentDictionaryInfo(singleWord);
 
 		final ZLResource dialogResource = ZLResource.resource("dialog");
